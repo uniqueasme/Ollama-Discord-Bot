@@ -7,6 +7,7 @@ Usage: !set_classifier_model <model_name>
 import json
 
 class set_classifier_model:
+    admin_only = True
     description = "Sets the preferred model for intent classification. Usage: !set_classifier_model <model_name>"
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Require a model name argument

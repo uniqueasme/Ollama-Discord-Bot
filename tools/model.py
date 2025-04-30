@@ -5,6 +5,7 @@ Usage: !model <model_name>
 """
 
 class model:
+    admin_only = True
     description = "Changes the AI model used for responses. Usage: !model <model_name>"
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Require a model name argument

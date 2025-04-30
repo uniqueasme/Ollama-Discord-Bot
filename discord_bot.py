@@ -1,3 +1,6 @@
+# NOTE: Do NOT run this file directly.
+# To start the bot, use: python main.py
+# This file is imported and managed by main.py for proper restart and error handling.
 # discord_bot.py
 # Main entry point for the Discord AI bot. Handles bot setup, event loop, command routing, and integration with Ollama.
 
@@ -328,7 +331,22 @@ def is_admin(user, guild):
     # Always allow server owner
     if guild and user.id == guild.owner_id:
         return True
-    return user.id in admins
+    # Check if user is in the admin user list
+    if user.id in admins:
+        return True
+    # Check if user has any admin role
+    try:
+        import json
+        with open('admin_data.json', 'r') as f:
+            data = json.load(f)
+        admin_roles = set(data.get('admin_roles', []))
+        if hasattr(user, 'roles'):
+            user_role_ids = {role.id for role in getattr(user, 'roles', [])}
+            if admin_roles & user_role_ids:
+                return True
+    except Exception:
+        pass
+    return False
 
 # --- Moderator commands ---
 @bot.command(name='add_mod')

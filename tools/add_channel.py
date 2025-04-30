@@ -5,6 +5,7 @@ Usage: !add_channel
 """
 
 class add_channel:
+    admin_only = True
     description = "Adds the current channel to the list of allowed channels for bot commands. Usage: !add_channel"
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Get the current channel ID

@@ -6,6 +6,7 @@ Usage: !toggle_welcome
 
 class toggle_welcome:
     description = "Enables or disables the welcome message on bot startup. Usage: !toggle_welcome"
+    admin_only = True
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Toggle the welcome message enabled flag
         welcome_message_enabled = getattr(bot_tools, 'WELCOME_MESSAGE_ENABLED', True)

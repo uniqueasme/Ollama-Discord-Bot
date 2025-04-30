@@ -5,6 +5,7 @@ Usage: !remove_channel
 """
 
 class remove_channel:
+    admin_only = True
     description = "Removes the current channel from the list of allowed channels for bot commands. Usage: !remove_channel"
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Get the current channel ID

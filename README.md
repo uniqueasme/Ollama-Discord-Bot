@@ -22,9 +22,10 @@ pip install -r requirements.txt
 ```
 
 ### 3. Configuration
-- Copy `.env.example` to `.env` and add your Discord token:
+- Open the `.env` file in the project root (or `.env` if running from that folder).
+- Paste your Discord bot token in place of `<DISCORD_TOKEN>`:
   ```
-  DISCORD_TOKEN=your_discord_token_here
+  DISCORD_TOKEN=<DISCORD_TOKEN
   ```
 - (Optional) Set the Ollama server URL in your environment or `.env`:
   ```
@@ -58,6 +59,6 @@ python main.py
 ## Troubleshooting
 - If the bot can't connect to Ollama, check that Ollama is running and the URL/port is correct.
 - For help, use `!server_status` or `!help` in Discord.
-
+ 
 ---
 MIT License

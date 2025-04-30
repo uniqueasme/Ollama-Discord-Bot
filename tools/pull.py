@@ -12,6 +12,7 @@ import asyncio
 OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434/api')
 
 class pull:
+    admin_only = True
     description = "Downloads a new AI model from Ollama by name and makes it available for use. Usage: !pull <model_name>"
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Require a model name argument

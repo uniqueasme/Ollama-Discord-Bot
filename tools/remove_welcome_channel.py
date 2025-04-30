@@ -6,6 +6,7 @@ Usage: !remove_welcome_channel
 
 class remove_welcome_channel:
     description = "Removes the current channel from the list of channels that receive the welcome message on bot startup. Usage: !remove_welcome_channel"
+    admin_only = True
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Get the current channel ID
         channel_id = ctx.channel.id

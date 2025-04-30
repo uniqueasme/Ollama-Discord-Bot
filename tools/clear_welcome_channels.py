@@ -5,6 +5,7 @@ Usage: !clear_welcome_channels
 """
 
 class clear_welcome_channels:
+    admin_only = True
     description = "Clears the list of specific channels for welcome messages, reverting to default behavior. Usage: !clear_welcome_channels"
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Get the list of welcome message channel IDs

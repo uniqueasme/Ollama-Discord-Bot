@@ -7,6 +7,7 @@ Usage: !clear_messages <number|all>
 import discord
 
 class clear_messages:
+    admin_only = True
     description = "Clears a number of recent messages or all messages in the current channel. Usage: !clear_messages <number|all>"
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Check for argument specifying number or 'all'

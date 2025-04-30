@@ -6,6 +6,7 @@ Usage: !toggle_channel_restriction
 
 class toggle_channel_restriction:
     description = "Toggles channel restriction on or off globally for the bot. Usage: !toggle_channel_restriction"
+    admin_only = True
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Toggle the restriction flag
         save_channel_data = getattr(bot_tools, 'save_channel_data', None)

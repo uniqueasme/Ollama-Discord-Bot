@@ -5,6 +5,7 @@ Usage: !add_welcome_channel
 """
 
 class add_welcome_channel:
+    admin_only = True
     description = "Adds the current channel to the list of channels that receive the welcome message on bot startup. Usage: !add_welcome_channel"
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Get the current channel ID

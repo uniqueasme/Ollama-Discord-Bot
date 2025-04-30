@@ -7,6 +7,7 @@ Usage: !set_image_model <model_name>
 import json
 
 class set_image_model:
+    admin_only = True
     description = "Sets the model used for image reading and analysis. Usage: !set_image_model <model_name>"
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Require a model name argument
