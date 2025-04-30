@@ -37,6 +37,10 @@ class help:
             "ONLY explain the following commands. Do NOT invent or mention any commands that are not in this list. "
             "If a user asks for a command not in this list, say it does not exist.\n"
             f"Available Commands:\n{command_list_str}\n"
+            "For each command, write the description as a complete sentence, ending with a period. "
+            "For example:\n"
+            "- `/ask`: Asks the AI a question and gets a response.\n"
+            "- `/model`: Changes the AI model used for responses.\n"
             "Explain what each command does and provide a brief example if helpful. "
             f"Mention that users can also interact by replying to you or mentioning you (@{bot_name})."
         )
@@ -46,8 +50,8 @@ class help:
                 ai_help_explanation = await get_ollama_response(help_prompt)
             except Exception:
                 ai_help_explanation = None
-        # If model/server is down, show a static help message
-        async def send_message(msg):
+
+        async def send_message(ctx, msg):
             if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
                 if not ctx.response.is_done():
                     await ctx.response.send_message(msg)
@@ -55,30 +59,43 @@ class help:
                     await ctx.followup.send(msg)
             else:
                 await ctx.send(msg)
-        def split_message_by_sentence(text, max_length=2000):
+
+        def split_message_safely(text, max_length=2000):
             import re
-            sentences = re.split(r'(?<=[.!?]) +', text)
+            # Split by list items (lines starting with - or *)
+            lines = text.split('\n')
             chunks = []
-            current_chunk = ''
-            for sentence in sentences:
-                if len(current_chunk) + len(sentence) + 1 > max_length:
-                    if current_chunk:
-                        chunks.append(current_chunk)
-                    current_chunk = sentence
+            current = ''
+            for line in lines:
+                # If adding this line would exceed max_length, start a new chunk
+                if len(current) + len(line) + 1 > max_length:
+                    if current:
+                        chunks.append(current.strip())
+                    current = line
                 else:
-                    if current_chunk:
-                        current_chunk += ' ' + sentence
+                    if current:
+                        current += '\n' + line
                     else:
-                        current_chunk = sentence
-            if current_chunk:
-                chunks.append(current_chunk)
-            return chunks
+                        current = line
+            if current:
+                chunks.append(current.strip())
+            # Fallback: hard split any chunk still too long
+            final_chunks = []
+            for chunk in chunks:
+                if len(chunk) <= max_length:
+                    final_chunks.append(chunk)
+                else:
+                    for i in range(0, len(chunk), max_length):
+                        final_chunks.append(chunk[i:i+max_length])
+            return final_chunks
+
+        # If model/server is down, show a static help message
         if not ai_help_explanation or (isinstance(ai_help_explanation, str) and ai_help_explanation.strip().lower().startswith("error")):
             static_help = f"👋 **Hello! Here's how you can interact with me ({bot_name}):**\n\nYou can use the following commands:\n\n{command_list_str}\n\n*You can also often get me to perform actions like listing models or asking for help by just replying to me or mentioning me (@{bot_name}) with your request!*\n*I work best in allowed channels or DMs if we share a server.*"
-            for chunk in split_message_by_sentence(static_help):
-                await send_message(chunk)
+            for chunk in split_message_safely(static_help):
+                await send_message(ctx, chunk)
             return
         # Send the AI-generated or static help message
         final_help_message = f"👋 **Hello! Here's how you can interact with me ({bot_name}):**\n\nYou can use the following commands:\n\n{ai_help_explanation}\n\n*You can also often get me to perform actions like listing models or asking for help by just replying to me or mentioning me (@{bot_name}) with your request!*\n*I work best in allowed channels or DMs if we share a server.*"
-        for chunk in split_message_by_sentence(final_help_message):
-            await send_message(chunk)
+        for chunk in split_message_safely(final_help_message):
+            await send_message(ctx, chunk)

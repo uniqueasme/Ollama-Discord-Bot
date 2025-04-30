@@ -7,6 +7,14 @@ Usage: !models
 class models:
     description = "Lists all available AI models and shows the current one. Usage: !models"
     async def run(self, ctx, bot_tools, *args, **kwargs):
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)
         # Get available models and current default model
         get_available_models = getattr(bot_tools, 'get_available_models', None)
         default_model = getattr(bot_tools, 'DEFAULT_MODEL', None)
@@ -20,12 +28,3 @@ class models:
         current = f"Current model: **{default_model}**\n\n"
         models_list = "\n".join([f"• {model}" for model in available_models])
         await send_message(f"{current}**Available Models:**\n{models_list}\n\nUse `!model <model_name>` to switch models.")
-
-        async def send_message(msg):
-            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
-                if not ctx.response.is_done():
-                    await ctx.response.send_message(msg)
-                else:
-                    await ctx.followup.send(msg)
-            else:
-                await ctx.send(msg)

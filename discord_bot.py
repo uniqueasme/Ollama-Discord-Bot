@@ -159,7 +159,7 @@ async def get_command_intent(user_message):
     available_models = await get_available_models()
     # No model should ever be specified by default here
     prompt = f"""Analyze the following user request and determine the primary intent. Respond ONLY with a JSON object containing 'intent' and optional 'parameters'.\n\nPossible intents are:\n- 'get_help': User is asking for help or how to use the bot.\n- 'list_models': User wants to see the available models.\n- 'change_model': User wants to switch the AI model. Include the requested model name/keyword in parameters['model_query'].\n- 'check_status': User wants to know the current model.\n- 'general_question': User is asking a general question or making a statement not matching other intents.\n\nUser Request: \"{user_message}\"\n\nJSON Response:"""
-    response_text = await get_ollama_response(prompt, model=classifier_model)
+    response_text = await get_ollama_response(prompt, model=DEFAULT_MODEL)
     cleaned_response = response_text.strip()
     try:
         match = re.search(r'```(?:json)?\s*({.*?})\s*```', cleaned_response, re.DOTALL)
@@ -220,7 +220,7 @@ async def on_message(message):
                 # Always pass image if present, and add a hint to the prompt
                 if image_data_list:
                     prompt_with_hint = f"[An image is attached to this message.]\n{user_message}"
-                    await ctx.invoke(bot.get_command('ask'), prompt_with_hint)
+                    await ctx.invoke(bot.get_command('ask'), question=prompt_with_hint)
                     return
                 if intent == 'list_models':
                     await ctx.invoke(bot.get_command('models'))
@@ -235,7 +235,7 @@ async def on_message(message):
                     await ctx.invoke(bot.get_command('help'))
                     return
                 # Otherwise, treat as a general question
-                await ctx.invoke(bot.get_command('ask'), user_message)
+                await ctx.invoke(bot.get_command('ask'), question=user_message)
                 return
     # For !commands, also check channel restriction, but always allow add_channel and toggle_channel_restriction
     if (
@@ -416,6 +416,40 @@ async def reset_slash(interaction):
 
 # Register the slash command
 bot.tree.add_command(reset_slash)
+
+# --- Utility: Split and send long messages to avoid Discord 2000 char limit ---
+def split_message(text, max_length=2000):
+    """Splits a long message into chunks <= max_length, trying to split at sentence boundaries."""
+    import re
+    sentences = re.split(r'(?<=[.!?]) +', text)
+    chunks = []
+    current = ''
+    for sentence in sentences:
+        if len(current) + len(sentence) + 1 > max_length:
+            if current:
+                chunks.append(current.strip())
+            current = sentence
+        else:
+            if current:
+                current += ' ' + sentence
+            else:
+                current = sentence
+    if current:
+        chunks.append(current.strip())
+    return chunks
+
+async def send_long_message(destination, text):
+    """Sends a long message in chunks."""
+    for chunk in split_message(text):
+        await destination.send(chunk)
+
+# Register the ask command
+from tools.ask import ask as AskTool
+
+@bot.command(name='ask')
+async def ask_command(ctx, *, question: str = ""):
+    tool = AskTool()
+    await tool.run(ctx, bot_tools, question)
 
 # --- Main entry point for running the bot ---
 if __name__ == "__main__":

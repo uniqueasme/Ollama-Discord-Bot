@@ -8,6 +8,14 @@ class model:
     admin_only = True
     description = "Changes the AI model used for responses. Usage: /model <model_name>"
     async def run(self, ctx, bot_tools, *args, **kwargs):
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)
         # Require a model name argument
         if not args:
             await send_message("Please specify a model name. Usage: !model <model_name>")
@@ -34,12 +42,3 @@ class model:
             return
         save_default_model(model_name)
         await send_message(f"Successfully switched to model: {model_name}")
-
-        async def send_message(msg):
-            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
-                if not ctx.response.is_done():
-                    await ctx.response.send_message(msg)
-                else:
-                    await ctx.followup.send(msg)
-            else:
-                await ctx.send(msg)

@@ -15,6 +15,15 @@ class pull:
     admin_only = True
     description = "Downloads a new AI model from Ollama by name and makes it available for use. Usage: !pull <model_name>"
     async def run(self, ctx, bot_tools, *args, **kwargs):
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)
+
         # Require a model name argument
         if not args:
             await send_message("Please specify a model name. Usage: !pull <model_name>")
@@ -24,15 +33,6 @@ class pull:
         if not get_available_models:
             await send_message("Could not retrieve available models.")
             return
-
-        async def send_message(msg):
-            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
-                if not ctx.response.is_done():
-                    await ctx.response.send_message(msg)
-                else:
-                    await ctx.followup.send(msg)
-            else:
-                await ctx.send(msg)
 
         # Send a pull request to Ollama for the specified model
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
