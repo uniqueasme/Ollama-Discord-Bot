@@ -18,21 +18,21 @@ class image:
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Check for image URL argument
         if not args:
-            await ctx.send("Please provide an image URL. Usage: !image <image_url>")
+            await send_message("Please provide an image URL. Usage: !image <image_url>")
             return
         url = args[0]
         # Download the image from the provided URL
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.status != 200:
-                    await ctx.send(f"Failed to download image: {response.status}")
+                    await send_message(f"Failed to download image: {response.status}")
                     return
                 filename = url.split("/")[-1]
                 image_bytes = await response.read()
                 # Save image to disk temporarily
                 with open(filename, "wb") as f:
                     f.write(image_bytes)
-                await ctx.send(file=discord.File(filename))
+                await send_message(file=discord.File(filename))
                 os.remove(filename)
                 # Save image to memory for follow-up questions and analyze it
                 channel_id = ctx.channel.id
@@ -58,3 +58,12 @@ class image:
                 with open(filename, "wb") as f:
                     f.write(await response.read())
                 return True, filename, None
+
+    async def send_message(self, ctx, msg):
+        if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+            if not ctx.response.is_done():
+                await ctx.response.send_message(msg)
+            else:
+                await ctx.followup.send(msg)
+        else:
+            await ctx.send(msg)

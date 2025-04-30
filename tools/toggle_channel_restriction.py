@@ -12,7 +12,17 @@ class toggle_channel_restriction:
         save_channel_data = getattr(bot_tools, 'save_channel_data', None)
         bot_tools.CHANNEL_RESTRICTION_ENABLED = not getattr(bot_tools, 'CHANNEL_RESTRICTION_ENABLED', False)
         state = 'enabled' if bot_tools.CHANNEL_RESTRICTION_ENABLED else 'disabled'
-        await ctx.send(f"Channel restriction is now {state}.")
+        
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)
+        
+        await send_message(f"Channel restriction is now {state}.")
         if save_channel_data:
             save_channel_data()
         # Also update the JSON file directly to ensure persistence
@@ -24,4 +34,4 @@ class toggle_channel_restriction:
             with open('channel_data.json', 'w') as f:
                 json.dump(data, f)
         except Exception as e:
-            await ctx.send(f"Warning: Could not update channel_data.json: {e}")
+            await send_message(f"Warning: Could not update channel_data.json: {e}")

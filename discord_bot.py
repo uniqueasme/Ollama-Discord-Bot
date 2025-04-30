@@ -16,6 +16,7 @@ import re
 import signal
 import sys
 import json
+from discord import app_commands
 
 # Load environment variables from .env file
 load_dotenv()
@@ -290,11 +291,11 @@ async def on_ready():
             if needs_vision:
                 msg += "Please select a vision model for the bot.\n"
             msg += "\nAvailable models:\n" + "\n".join(f"• {m}" for m in available_models)
-            msg += "\n\nReply with `!model <model_name>` for chat or `!set_image_model <model_name>` for vision."
+            msg += "\n\nUse the `/model` command for chat or `/set_image_model` for vision."
             await channel.send(msg)
         # Send welcome message if enabled and models are selected
         if WELCOME_MESSAGE_ENABLED and bot_tools.DEFAULT_MODEL and bot_tools.IMAGE_MODEL:
-            welcome_msg = f"👋 **{bot.user.name} is now online!**\nReady to help. Use `!help` for commands."
+            welcome_msg = f"👋 **{bot.user.name} is now online!**\nReady to help. Use `/help` for commands."
             try:
                 await channel.send(welcome_msg)
             except Exception:
@@ -308,6 +309,8 @@ async def on_ready():
                     await notify_channel.send('🔄 The bot was just reset and is now back online!')
         except Exception:
             pass
+    # Sync slash commands with Discord
+    await bot.tree.sync()
     bot.loop.create_task(ensure_models())
 
 # --- Admin/mod management ---
@@ -387,9 +390,7 @@ async def reset(ctx):
         await ctx.send("❌ Only the server owner or a bot moderator can use this command.")
         return
     await ctx.send("♻️ Restarting bot...")
-    # Set a global flag and stop the bot loop
     global SHOULD_RESTART
-    # Write a reset flag file so the bot can notify on restart
     try:
         with open('reset_flag.txt', 'w') as f:
             f.write('reset')
@@ -397,6 +398,24 @@ async def reset(ctx):
         pass
     SHOULD_RESTART = True
     bot.loop.call_soon_threadsafe(bot.loop.stop)
+
+@app_commands.command(name="reset", description="Restart the bot (admin only)")
+async def reset_slash(interaction):
+    if not is_admin(interaction.user, interaction.guild):
+        await interaction.response.send_message("❌ Only the server owner or a bot moderator can use this command.", ephemeral=True)
+        return
+    await interaction.response.send_message("♻️ Restarting bot...", ephemeral=True)
+    global SHOULD_RESTART
+    try:
+        with open('reset_flag.txt', 'w') as f:
+            f.write('reset')
+    except Exception:
+        pass
+    SHOULD_RESTART = True
+    bot.loop.call_soon_threadsafe(bot.loop.stop)
+
+# Register the slash command
+bot.tree.add_command(reset_slash)
 
 # --- Main entry point for running the bot ---
 if __name__ == "__main__":

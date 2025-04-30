@@ -19,15 +19,28 @@ class ask:
         image_model = getattr(bot_tools, 'IMAGE_MODEL', None)
         default_model = getattr(bot_tools, 'DEFAULT_MODEL', None)
         available_models = await bot_tools.get_available_models() if hasattr(bot_tools, 'get_available_models') else []
-        attachments = ctx.message.attachments if hasattr(ctx.message, 'attachments') else None
+        attachments = getattr(ctx, 'message', None)
+        if attachments and hasattr(ctx.message, 'attachments'):
+            attachments = ctx.message.attachments
+        else:
+            attachments = None
         image_data_list = []
         image_context_used = None
         new_image_attached = False
         detailed_report = None
+        # Helper to send a message compatible with both ctx and interaction
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)
         # If an image is attached, process it and analyze if possible
         if attachments:
             if not image_model or image_model not in available_models:
-                await ctx.send("No vision model is selected or the selected model is not available.")
+                await send_message("No vision model is selected or the selected model is not available.")
                 return
             attachment = attachments[0]
             if attachment.content_type and attachment.content_type.startswith('image/'):
@@ -64,7 +77,7 @@ class ask:
                 cleaned_response = response.strip() if response else ""
             conversation_history[channel_id].append(f"Assistant: {cleaned_response}")
             conversation_history[channel_id] = conversation_history[channel_id][-10:]
-            await ctx.send(cleaned_response)
+            await send_message(cleaned_response)
             return
         # Otherwise, use the conversation history and ask the model
         full_prompt = f"{history_prompt}\nUser: {question}\nAssistant: "
@@ -72,4 +85,4 @@ class ask:
         cleaned_response = response.strip() if response else ""
         conversation_history[channel_id].append(f"Assistant: {cleaned_response}")
         conversation_history[channel_id] = conversation_history[channel_id][-10:]
-        await ctx.send(cleaned_response)
+        await send_message(cleaned_response)

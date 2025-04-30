@@ -10,7 +10,7 @@ class remove_admin:
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Convert the first argument to a discord.Role object
         if not args:
-            await ctx.send("Please specify a role. Usage: !remove_admin @RoleName")
+            await send_message("Please specify a role. Usage: !remove_admin @RoleName")
             return
         role_arg = args[0]
         role = None
@@ -26,7 +26,7 @@ class remove_admin:
                     role = r
                     break
         if not role:
-            await ctx.send(f"Role '{role_arg}' not found.")
+            await send_message(f"Role '{role_arg}' not found.")
             return
         # Remove the role ID from admin_data.json admin_roles
         import json, os
@@ -41,6 +41,15 @@ class remove_admin:
             data['admin_roles'] = list(admin_roles)
             with open(admin_data_file, 'w') as f:
                 json.dump(data, f)
-            await ctx.send(f"✅ Removed role {role.mention} from bot admin roles.")
+            await send_message(f"✅ Removed role {role.mention} from bot admin roles.")
         else:
-            await ctx.send(f"Role {role.mention} is not in the bot admin roles list.")
+            await send_message(f"Role {role.mention} is not in the bot admin roles list.")
+
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)

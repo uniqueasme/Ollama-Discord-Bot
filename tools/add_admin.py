@@ -15,9 +15,18 @@ class add_admin:
         Adds all members of a specified role as bot admins.
         Usage: !add_admin @RoleName
         """
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)
+
         # Convert the first argument to a discord.Role object
         if not args:
-            await ctx.send("Please specify a role. Usage: !add_admin @RoleName")
+            await send_message("Please specify a role. Usage: !add_admin @RoleName")
             return
         role_arg = args[0]
         role = None
@@ -35,7 +44,7 @@ class add_admin:
                     role = r
                     break
         if not role:
-            await ctx.send(f"Role '{role_arg}' not found.")
+            await send_message(f"Role '{role_arg}' not found.")
             return
         # Save the role ID to admin_data.json as an admin role
         import json, os
@@ -52,4 +61,4 @@ class add_admin:
             data['admins'] = list(set(data['admins']))
         with open(admin_data_file, 'w') as f:
             json.dump(data, f)
-        await ctx.send(f"✅ Added role {role.mention} as a bot admin role.")
+        await send_message(f"✅ Added role {role.mention} as a bot admin role.")

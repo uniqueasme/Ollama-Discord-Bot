@@ -15,6 +15,15 @@ class server_status:
     
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Try to connect to Ollama and fetch model/server stats
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)
+
         try:
             async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
                 url = OLLAMA_BASE_URL + '/tags'
@@ -63,10 +72,10 @@ class server_status:
                             f"- Welcome message: {'enabled' if welcome_enabled else 'disabled'}\n"
                             f"- Welcome channels: {', '.join(welcome_mentions) if welcome_mentions else 'None'}\n"
                         )
-                        await ctx.send(msg)
+                        await send_message(msg)
                     else:
-                        await ctx.send(f"Ollama server returned status code {response.status}. Response: {await response.text()}")
+                        await send_message(f"Ollama server returned status code {response.status}. Response: {await response.text()}")
         except aiohttp.ClientConnectorError:
-            await ctx.send("Could not connect to Ollama server. Please make sure Ollama is running with 'ollama serve'.")
+            await send_message("Could not connect to Ollama server. Please make sure Ollama is running with 'ollama serve'.")
         except Exception as e:
-            await ctx.send(f"Error checking Ollama status: {str(e)}")
+            await send_message(f"Error checking Ollama status: {str(e)}")

@@ -107,43 +107,39 @@ class BotTools:
         # This method is now deprecated. Use register_dynamic_tools instead.
         pass
 
-    # Dynamically register all tools in the tools/ directory as bot commands
+    # Dynamically register all tools in the tools/ directory as slash commands (single string argument for all)
     def register_dynamic_tools(self):
         import importlib.util
         import inspect
         import glob
         import sys
-        from discord.ext import commands
+        from discord import app_commands
         
         tools_path = os.path.join(os.path.dirname(__file__), 'tools')
         tool_files = glob.glob(os.path.join(tools_path, '*.py'))
-        def make_dynamic_command(tool_class, tool_name, description):
-            async def dynamic_command(ctx, *args):
-                # Always allow !add_channel and !toggle_channel_restriction in any channel, even if restriction is enabled
-                if tool_name in ('add_channel', 'toggle_channel_restriction'):
-                    pass
-                elif not self.is_channel_allowed(ctx.channel.id):
-                    await ctx.send("This channel is not allowed. Use !add_channel to enable bot commands here.")
+        def make_dynamic_slash_command(tool_class, tool_name):
+            async def dynamic_slash_command(interaction: discord.Interaction, arg: str = None):
+                # Only allow in allowed channels (except add_channel/toggle_channel_restriction)
+                if tool_name not in ('add_channel', 'toggle_channel_restriction') and not self.is_channel_allowed(interaction.channel_id):
+                    await interaction.response.send_message("This channel is not allowed. Use /add_channel to enable bot commands here.", ephemeral=True)
                     return
                 run_method = getattr(tool_class, 'run', None)
                 if run_method is None:
-                    await ctx.send(f"Tool '{tool_name}' does not implement a run method.")
+                    await interaction.response.send_message(f"Tool '{tool_name}' does not implement a run method.", ephemeral=True)
                     return
-                import inspect
-                sig = inspect.signature(run_method)
-                params = list(sig.parameters.keys())
                 try:
-                    async with ctx.typing():
-                        result = run_method(tool_class(), ctx, self, *args)
-                        if inspect.isawaitable(result):
-                            result = await result
-                        if isinstance(result, tuple):
-                            await ctx.send(str(result[1]))
-                        elif result is not None:
-                            await ctx.send(str(result))
+                    await interaction.response.defer(thinking=True)
+                    args = arg.split() if arg else []
+                    result = run_method(tool_class(), interaction, self, *args)
+                    if inspect.isawaitable(result):
+                        result = await result
+                    if isinstance(result, tuple):
+                        await interaction.followup.send(str(result[1]))
+                    elif result is not None:
+                        await interaction.followup.send(str(result))
                 except Exception as e:
-                    await ctx.send(f"Error running tool '{tool_name}': {e}")
-            return self.bot.command(name=tool_name, help=description, ignore_extra=True)(dynamic_command)
+                    await interaction.followup.send(f"Error running tool '{tool_name}': {e}")
+            return dynamic_slash_command
         for tool_file in tool_files:
             tool_name = os.path.splitext(os.path.basename(tool_file))[0]
             if tool_name.startswith('__'):
@@ -156,7 +152,12 @@ class BotTools:
             if tool_class is None or not inspect.isclass(tool_class):
                 continue
             description = getattr(tool_class, 'description', f'No description for {tool_name}')
-            make_dynamic_command(tool_class, tool_name, description)
+            command = app_commands.Command(
+                name=tool_name,
+                description=description[:100],
+                callback=make_dynamic_slash_command(tool_class, tool_name)
+            )
+            self.bot.tree.add_command(command)
 
     # Get a string listing all registered tools and their descriptions
     @staticmethod
@@ -172,14 +173,15 @@ class BotTools:
     def get_system_prompt(self):
         tool_list = self.get_tools_info_string()
         return (
-            "You are an helpfull assistant of the coolest Discord server."
+            "You are a helpful assistant for this Discord server. "
             "You have access to the following tools/commands, each with a specific function. "
-            "If a user asks for something that can be accomplished with a tool/command, you must use the tool directly in code, never by outputting a !command as a user would. "
-            "Never invent or simulate the results of a tool/command—always use the real tool/command when available. "
-            "If you are unsure which tool to use, or if you need to explain the available tools to a user, use the help tool directly, not by outputting !help. "
-            "Do not invent or mention tools/commands that are not listed below. "
+            "If a user asks for something that can be accomplished with a tool/command, you must use the tool directly in code, never by outputting a command as a user would. "
+            "Never invent, simulate, or mention the results of a tool/command—always use the real tool/command when available. "
+            "Never invent, mention, or use any tool, command, or function that is not listed below. If a user asks for something not in the list, reply that it is not available. "
+            "If you are unsure which tool to use, or if you need to explain the available tools to a user, use the help tool directly, not by outputting a command. "
+            "If you do not know the answer, say you do not know. Never make up tools, commands, or functions. "
             "If a user attaches an image, you must carefully check if their request is about the image (e.g., asking for analysis, description, or information about the image) or if it is a general question. Only use your vision/image analysis capabilities if the user is clearly referring to the image. If not, treat the request as a normal text question. "
             "Here are the available tools/commands, each with its usage and description:\n"
             f"{tool_list}\n"
-            "If you are asked to do something that requires a tool, use the tool directly in code and wait for the result. Never output !commands as a user would."
+            "If you are asked to do something that requires a tool, use the tool directly in code and wait for the result. Never output commands as a user would."
         )

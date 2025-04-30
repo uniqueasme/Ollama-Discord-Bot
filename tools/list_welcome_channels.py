@@ -11,6 +11,16 @@ class list_welcome_channels:
         welcome_message_channel_ids = getattr(bot_tools, 'WELCOME_MESSAGE_CHANNEL_IDS', [])
         welcome_message_enabled = getattr(bot_tools, 'WELCOME_MESSAGE_ENABLED', True)
         bot = getattr(bot_tools, 'bot', None)
+        
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)
+                
         # Build a list of channel mentions or IDs
         if welcome_message_channel_ids:
             channel_mentions = []
@@ -21,4 +31,4 @@ class list_welcome_channels:
         else:
             msg = "No specific channels set for the welcome message. It will be sent to the first available/allowed channel in each server."
         msg += f"\nWelcome message on startup is currently **{'enabled' if welcome_message_enabled else 'disabled'}**."
-        await ctx.send(msg)
+        await send_message(msg)

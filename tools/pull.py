@@ -17,13 +17,23 @@ class pull:
     async def run(self, ctx, bot_tools, *args, **kwargs):
         # Require a model name argument
         if not args:
-            await ctx.send("Please specify a model name. Usage: !pull <model_name>")
+            await send_message("Please specify a model name. Usage: !pull <model_name>")
             return
         model_name = args[0]
         get_available_models = getattr(bot_tools, 'get_available_models', None)
         if not get_available_models:
-            await ctx.send("Could not retrieve available models.")
+            await send_message("Could not retrieve available models.")
             return
+
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)
+
         # Send a pull request to Ollama for the specified model
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
             url = OLLAMA_BASE_URL + '/pull'
@@ -35,10 +45,10 @@ class pull:
                     for _ in range(poll_attempts):
                         available_models = await get_available_models()
                         if model_name in available_models:
-                            await ctx.send(f"Successfully pulled model '{model_name}'. It is now available.")
+                            await send_message(f"Successfully pulled model '{model_name}'. It is now available.")
                             return
                         await asyncio.sleep(3)
-                    await ctx.send(f"Pull request sent, but model '{model_name}' is not yet available after waiting. It may still be downloading.")
+                    await send_message(f"Pull request sent, but model '{model_name}' is not yet available after waiting. It may still be downloading.")
                 else:
                     error_text = await response.text()
-                    await ctx.send(f"Failed to pull model '{model_name}'. Status: {response.status}. Details: {error_text}")
+                    await send_message(f"Failed to pull model '{model_name}'. Status: {response.status}. Details: {error_text}")

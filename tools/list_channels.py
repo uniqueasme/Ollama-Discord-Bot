@@ -11,9 +11,19 @@ class list_channels:
         allowed_channels = getattr(bot_tools, 'ALLOWED_CHANNELS', [])
         channel_restriction_enabled = getattr(bot_tools, 'CHANNEL_RESTRICTION_ENABLED', False)
         bot = getattr(bot_tools, 'bot', None)
+        
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)
+                
         # If no allowed channels, notify user
         if not allowed_channels:
-            await ctx.send(f"No channels are in the allowed list. Channel restriction is currently {'enabled' if channel_restriction_enabled else 'disabled'}.")
+            await send_message(f"No channels are in the allowed list. Channel restriction is currently {'enabled' if channel_restriction_enabled else 'disabled'}.")
             return
         channel_names = []
         # Build a list of channel names or IDs
@@ -24,4 +34,4 @@ class list_channels:
             else:
                 channel_names.append(f"Unknown channel (ID: {channel_id})")
         channels_list = "\n".join(channel_names)
-        await ctx.send(f"**Allowed Channels:**\n{channels_list}\nChannel restriction is currently {'enabled' if channel_restriction_enabled else 'disabled'}.")
+        await send_message(f"**Allowed Channels:**\n{channels_list}\nChannel restriction is currently {'enabled' if channel_restriction_enabled else 'disabled'}.")

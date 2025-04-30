@@ -23,7 +23,15 @@ class clearhistory:
             del last_image_sent[channel_id]
             cleared_image = True
         # Notify user of what was cleared
+        async def send_message(msg):
+            if hasattr(ctx, 'response') and hasattr(ctx.response, 'is_done'):
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(msg)
+                else:
+                    await ctx.followup.send(msg)
+            else:
+                await ctx.send(msg)
         if cleared_history or cleared_image:
-            await ctx.send("Conversation history and last image context cleared for this channel.")
+            await send_message("Conversation history and last image context cleared for this channel.")
         else:
-            await ctx.send("No conversation history or image context to clear.")
+            await send_message("No conversation history or image context to clear.")
